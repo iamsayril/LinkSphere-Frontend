@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Linksphere Sign Up</title>
+  <link rel="stylesheet" href="../css/signup.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="logo-icon">✣</div>
+    <div class="logo-text">LINKSPHERE</div>
+  </header>
+
+  <main class="page">
+    <div class="brand-small">LINKSPHERE</div>
+
+    <section class="auth-card">
+      <h1>SIGN UP</h1>
+      <div class="underline"></div>
+
+      <form id="signup-form">
+
+        <label for="signup-name">Full Name</label>
+        <input id="signup-name" type="text" placeholder="YOUR NAME" />
+
+        <label for="signup-email">Email</label>
+        <input id="signup-email" type="email" placeholder="USER@DOMAIN.COM" />
+
+        <label for="signup-password">Password</label>
+        <input id="signup-password" type="password" placeholder="••••••••" />
+
+        <button id="signup-btn" type="submit" class="primary-btn">SIGN UP</button>
+      </form>
+
+      <div class="divider">
+        <span></span>
+        <p>OR</p>
+        <span></span>
+      </div>
+
+      <button id="google-signup-btn" type="button" class="google-btn">↪ LOGIN WITH GOOGLE</button>
+
+      <p class="switch-text">
+        Already have an account?
+        <a href="login.html">LOGIN</a>
+      </p>
+    </section>
+
+    <div class="status-bar">
+      <div><span class="dot"></span>SYSTEM ACTIVE</div>
+      <p>LATENCY: 12MS</p>
+      <p>V2.4.0</p>
+    </div>
+  </main>
+
+  <footer>
+    <h2>LINKSPHERE</h2>
+    <p>© 2026 LINKSPHERE. PRECISION ENGINEERED.</p>
+
+    <div class="footer-links">
+      <div>
+        <a href="#">PRODUCT</a>
+        <a href="#">FEATURES</a>
+        <a href="#">PRICING</a>
+      </div>
+      <div>
+        <a href="#">PRIVACY</a>
+        <a href="#">TERMS</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ✅ Only signup.js — removed auth.js and Supabase CDN -->
+  <script src="../js/signup.js"></script>
+</body>
+</html>

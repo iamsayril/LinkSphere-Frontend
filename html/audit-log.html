@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audit Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/audit-log.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button class="menu-btn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <h1>AUDIT LOG</h1>
+  </header>
+
+  <main class="audit-page">
+    <section class="date-group">
+      <h2>AUGUST 24, 2026</h2>
+
+      <article class="log-card highlighted" style="--delay: .08s">
+        <div class="avatar red">M</div>
+        <div class="log-content">
+          <div class="log-top">
+            <span class="name">MARK</span>
+            <span class="icon mic" aria-hidden="true"></span>
+          </div>
+          <p>set a <u>Voice Channel Status</u> in private shesh</p>
+          <time>YESTERDAY AT 11:42 PM</time>
+        </div>
+      </article>
+
+      <article class="log-card" style="--delay: .18s">
+        <div class="avatar">M</div>
+        <div class="log-content">
+          <div class="log-top">
+            <span class="name">MRCHL</span>
+            <span class="icon message" aria-hidden="true"></span>
+          </div>
+          <p>deleted 12 messages in #general-announcements</p>
+          <time>YESTERDAY AT 09:15 PM</time>
+        </div>
+      </article>
+    </section>
+
+    <section class="date-group">
+      <h2>AUGUST 23, 2026</h2>
+
+      <article class="log-card" style="--delay: .28s">
+        <div class="avatar">F</div>
+        <div class="log-content">
+          <div class="log-top">
+            <span class="name">FHITZ</span>
+            <span class="icon shield" aria-hidden="true"></span>
+          </div>
+          <p>updated Member Permissions in core-systems</p>
+          <time>FRIDAY AT 02:30 PM</time>
+        </div>
+      </article>
+
+      <article class="log-card" style="--delay: .38s">
+        <div class="avatar">S</div>
+        <div class="log-content">
+          <div class="log-top">
+            <span class="name">SALMAN</span>
+            <span class="icon user-add" aria-hidden="true"></span>
+          </div>
+          <p>approved 4 Join Requests from pending queue</p>
+          <time>FRIDAY AT 10:11 AM</time>
+        </div>
+      </article>
+    </section>
+  </main>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<script src="../js/audit-log.js"></script>
+<script src="../js/call-handler.js"></script>
+</body>
+</html>

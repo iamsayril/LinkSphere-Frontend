@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Linksphere Notification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/notification.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="hamburger" aria-label="menu"><span></span><span></span><span></span></div>
+    <div class="brand-mark">✣</div>
+    <div class="brand">LINKSPHERE</div>
+  </header>
+
+  <main class="page">
+    <section class="section reveal">
+      <div class="section-title live-title">
+        <h1>Live Feed</h1>
+        <span>Real-time updates</span>
+      </div>
+
+      <article class="feed-card">
+        <div class="mention panel-block">
+          <div class="meta-row">
+            <strong><span class="red icon">@</span> Mention</strong>
+            <span>2M Ago</span>
+          </div>
+          <h2>@Mark mentioned you in <em>High Cortisol</em></h2>
+          <p>"Aha namo guys"</p>
+          <div class="actions">
+            <button class="btn primary">Reply</button>
+            <button class="btn ghost">Dismiss</button>
+          </div>
+        </div>
+
+        <div class="message panel-block slim">
+          <div class="meta-row">
+            <strong><span class="bubble"></span>#General</strong>
+            <span class="arrow">→</span>
+          </div>
+          <h3>New Message</h3>
+          <p>"@Mark promoted you as a <span>moderator</span>...</p>
+        </div>
+
+        <div class="reaction panel-block slim">
+          <div class="meta-row left-only">
+            <strong><span class="heart">♥</span> Reaction</strong>
+          </div>
+          <p><b>Fhitz</b> reacted with <mark>"HEART"</mark> to your message in # general</p>
+          <small>15M Ago</small>
+        </div>
+      </article>
+    </section>
+
+    <section class="section controls reveal">
+      <div class="section-title control-title">
+        <h1>Notification<br>Control</h1>
+        <span>Preferences</span>
+      </div>
+
+      <div class="push-card">
+        <div>
+          <h3>Push Alerts</h3>
+          <p>System-level critical alerts.</p>
+        </div>
+        <button class="switch active" id="pushSwitch" aria-label="toggle push alerts"><span></span></button>
+      </div>
+
+      <div class="priority-card">
+        <div class="card-label">Mention alerts priority</div>
+        <button class="priority active" data-priority="Always Active">Always Active <span></span></button>
+        <button class="priority" data-priority="Smart Filter">Smart Filter <span></span></button>
+        <button class="priority" data-priority="Never">Never <span></span></button>
+      </div>
+
+      <div class="muted-card">
+        <div class="muted-head"><span>Muted Channels</span><span id="activeCount">3 Active</span></div>
+        <div class="channel"><b>#Random-Chat</b><button>Unmute</button></div>
+        <div class="channel"><b>#Marketing-<br>Sync</b><button>Unmute</button></div>
+        <div class="channel"><b>#Legacy-Docs</b><button>Unmute</button></div>
+        <button class="add-channel">+ Add Channel To Mute List</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="#"><span>⌂</span>Start</a>
+    <a href="#"><span>◉</span>Search</a>
+    <a href="#" class="current"><span>♧</span>Notification</a>
+    <a href="#"><span>▦</span>Workspace</a>
+  </nav>
+
+  <div class="toast" id="toast">Preference updated</div>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<script src="../js/notification.js"></script>
+<script src="../js/call-handler.js"></script>
+</body>
+</html>
