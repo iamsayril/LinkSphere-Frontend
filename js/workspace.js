@@ -1202,7 +1202,32 @@ function renderChannels(channels) {
            </span>`
         : `# ${escapeHtml(ch.name.toLowerCase())}`;
       btn.style.flex   = '1';
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
+        if (ch.is_private) {
+          const user = getUser();
+          const isOwner = currentWorkspace?.user_id === user?.user_id;
+          const isAdmin = currentWorkspace?.myRole === 'admin';
+          if (!isOwner && !isAdmin) {
+            const token = getToken();
+            try {
+              const res = await fetch(`${API_BASE}/channels/${ch.channel_id}/access`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+              const accessList = res.ok ? await res.json() : [];
+              const cached = window._channelAccessCache?.[ch.channel_id];
+              const list = (Array.isArray(accessList) && accessList.length) ? accessList : (cached || []);
+              if (!window._channelAccessCache) window._channelAccessCache = {};
+              window._channelAccessCache[ch.channel_id] = list;
+              if (!list.some(a => a.user_id === user?.user_id)) {
+                showErrorModal('You do not have permission to access this channel.');
+                return;
+              }
+            } catch (err) {
+              showErrorModal('You do not have permission to access this channel.');
+              return;
+            }
+          }
+        }
         document.querySelectorAll('.channel').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         openChannel(ch.channel_id, ch.name, getChannelType(ch));
@@ -1211,124 +1236,144 @@ function renderChannels(channels) {
       wrapper.appendChild(btn);
 
       if ((isOwner || isAdmin) && !isDefaultChannel(ch)) {
-        const menuBtn = document.createElement('button');
-        menuBtn.innerHTML = '⋯';
-        menuBtn.style.cssText = `
-          position: absolute; right: 8px;
-          background: none; border: none;
-          font-size: 16px; font-weight: 900;
-          cursor: pointer; color: #aaa;
-          padding: 0 4px; line-height: 1;
-          display: none;
-        `;
+        const canRename = isOwner || (!ch.is_private && isAdmin);
+        const canDelete = isOwner;
 
-        wrapper.addEventListener('mouseenter', () => menuBtn.style.display = 'block');
-        wrapper.addEventListener('mouseleave', () => menuBtn.style.display = 'none');
-
-        menuBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-
-          // Remove any existing dropdown
-          document.querySelectorAll('.ch-dropdown').forEach(d => d.remove());
-
-          const dropdown = document.createElement('div');
-          dropdown.className = 'ch-dropdown';
-          dropdown.style.cssText = `
-            position: absolute; right: 0; top: 100%;
-            background: #fff; border: 2px solid #111;
-            z-index: 999; min-width: 140px;
-            box-shadow: 4px 4px 0 #111;
-          `;
-
-          if (isDefaultChannel(ch)) {
-            dropdown.innerHTML = `<div style="padding:10px 14px;font-size:11px;color:#aaa;font-family:'DM Sans',Arial,sans-serif;font-weight:600;">Default channel —<br>cannot be edited.</div>`;
-          } else {
-            const renameBtn = document.createElement('button');
-            renameBtn.textContent = 'Rename';
-            renameBtn.style.cssText = `
-              width: 100%; padding: 10px 14px; border: none;
-              background: none; text-align: left;
-              font-family: 'DM Sans', Arial, sans-serif;
-              font-size: 12px; font-weight: 700;
-              text-transform: uppercase; cursor: pointer;
-              border-bottom: 1px solid #eee;
+        if (canRename || canDelete) {
+          if (isOwner && ch.is_private) {
+            const manageBtn = document.createElement('button');
+            manageBtn.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+            manageBtn.title = 'Manage Access';
+            manageBtn.style.cssText = `
+              position: absolute; right: 30px;
+              background: none; border: none;
+              cursor: pointer; color: #aaa;
+              padding: 0 4px; line-height: 1;
+              display: none; align-items: center; justify-content: center;
             `;
-            renameBtn.addEventListener('mouseenter', () => renameBtn.style.background = '#f4f4f4');
-            renameBtn.addEventListener('mouseleave', () => renameBtn.style.background = 'none');
-            renameBtn.addEventListener('click', (e) => {
+            wrapper.addEventListener('mouseenter', () => manageBtn.style.display = 'flex');
+            wrapper.addEventListener('mouseleave', () => manageBtn.style.display = 'none');
+            manageBtn.addEventListener('click', (e) => {
               e.stopPropagation();
-              dropdown.remove();
-              showModal({
-                title:       'RENAME CHANNEL',
-                label:       'NEW CHANNEL NAME',
-                placeholder: ch.name,
-                confirmText: 'RENAME',
-                onConfirm:   async (newName) => {
-                  const token = getToken();
-                  try {
-                    const res = await fetch(`${API_BASE}/channels/${ch.channel_id}`, {
-                      method:  'PATCH',
-                      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                      body:    JSON.stringify({ name: newName }),
-                    });
-                    if (!res.ok) {
-                      const data = await res.json();
-                      showErrorModal(data.error || 'Failed to rename channel');
-                      return;
-                    }
-                    loadWorkspace(currentWorkspace);
-                  } catch (err) {
-                    showErrorModal('Could not rename channel. Check your connection.');
-                  }
-                },
-              });
+              showChannelAccessModal(ch.channel_id, ch.name);
             });
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Delete';
-            deleteBtn.style.cssText = `
-              width: 100%; padding: 10px 14px; border: none;
-              background: none; text-align: left;
-              font-family: 'DM Sans', Arial, sans-serif;
-              font-size: 12px; font-weight: 700;
-              text-transform: uppercase; cursor: pointer;
-              color: #cc1414;
-            `;
-            deleteBtn.addEventListener('mouseenter', () => deleteBtn.style.background = '#fff0f0');
-            deleteBtn.addEventListener('mouseleave', () => deleteBtn.style.background = 'none');
-            deleteBtn.addEventListener('click', async (e) => {
-              e.stopPropagation();
-              dropdown.remove();
-              const token = getToken();
-              try {
-                const res = await fetch(`${API_BASE}/channels/${ch.channel_id}`, {
-                  method:  'DELETE',
-                  headers: { 'Authorization': `Bearer ${token}` },
-                });
-                if (!res.ok) {
-                  const data = await res.json();
-                  showErrorModal(data.error || 'Failed to delete channel');
-                  return;
-                }
-                loadWorkspace(currentWorkspace);
-              } catch (err) {
-                showErrorModal('Could not delete channel. Check your connection.');
-              }
-            });
-
-            dropdown.appendChild(renameBtn);
-            if (isOwner) dropdown.appendChild(deleteBtn);
+            wrapper.appendChild(manageBtn);
           }
 
-          wrapper.appendChild(dropdown);
+          const menuBtn = document.createElement('button');
+          menuBtn.innerHTML = '⋯';
+          menuBtn.style.cssText = `
+            position: absolute; right: 8px;
+            background: none; border: none;
+            font-size: 16px; font-weight: 900;
+            cursor: pointer; color: #aaa;
+            padding: 0 4px; line-height: 1;
+            display: none;
+          `;
 
-          // Close dropdown when clicking outside
-          setTimeout(() => {
-            document.addEventListener('click', () => dropdown.remove(), { once: true });
-          }, 0);
-        });
+          wrapper.addEventListener('mouseenter', () => menuBtn.style.display = 'block');
+          wrapper.addEventListener('mouseleave', () => menuBtn.style.display = 'none');
 
-        wrapper.appendChild(menuBtn);
+          menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.ch-dropdown').forEach(d => d.remove());
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'ch-dropdown';
+            dropdown.style.cssText = `
+              position: absolute; right: 0; top: 100%;
+              background: #fff; border: 2px solid #111;
+              z-index: 999; min-width: 140px;
+              box-shadow: 4px 4px 0 #111;
+            `;
+
+            if (canRename) {
+              const renameBtn = document.createElement('button');
+              renameBtn.textContent = 'Rename';
+              renameBtn.style.cssText = `
+                width: 100%; padding: 10px 14px; border: none;
+                background: none; text-align: left;
+                font-family: 'DM Sans', Arial, sans-serif;
+                font-size: 12px; font-weight: 700;
+                text-transform: uppercase; cursor: pointer;
+                border-bottom: 1px solid #eee;
+              `;
+              renameBtn.addEventListener('mouseenter', () => renameBtn.style.background = '#f4f4f4');
+              renameBtn.addEventListener('mouseleave', () => renameBtn.style.background = 'none');
+              renameBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.remove();
+                showModal({
+                  title:       'RENAME CHANNEL',
+                  label:       'NEW CHANNEL NAME',
+                  placeholder: ch.name,
+                  confirmText: 'RENAME',
+                  onConfirm:   async (newName) => {
+                    const token = getToken();
+                    try {
+                      const res = await fetch(`${API_BASE}/channels/${ch.channel_id}`, {
+                        method:  'PATCH',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ name: newName }),
+                      });
+                      if (!res.ok) {
+                        const data = await res.json();
+                        showErrorModal(data.error || 'Failed to rename channel');
+                        return;
+                      }
+                      loadWorkspace(currentWorkspace);
+                    } catch (err) {
+                      showErrorModal('Could not rename channel. Check your connection.');
+                    }
+                  },
+                });
+              });
+              dropdown.appendChild(renameBtn);
+            }
+
+            if (canDelete) {
+              const deleteBtn = document.createElement('button');
+              deleteBtn.textContent = 'Delete';
+              deleteBtn.style.cssText = `
+                width: 100%; padding: 10px 14px; border: none;
+                background: none; text-align: left;
+                font-family: 'DM Sans', Arial, sans-serif;
+                font-size: 12px; font-weight: 700;
+                text-transform: uppercase; cursor: pointer;
+                color: #cc1414;
+              `;
+              deleteBtn.addEventListener('mouseenter', () => deleteBtn.style.background = '#fff0f0');
+              deleteBtn.addEventListener('mouseleave', () => deleteBtn.style.background = 'none');
+              deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                dropdown.remove();
+                const token = getToken();
+                try {
+                  const res = await fetch(`${API_BASE}/channels/${ch.channel_id}`, {
+                    method:  'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                  });
+                  if (!res.ok) {
+                    const data = await res.json();
+                    showErrorModal(data.error || 'Failed to delete channel');
+                    return;
+                  }
+                  loadWorkspace(currentWorkspace);
+                } catch (err) {
+                  showErrorModal('Could not delete channel. Check your connection.');
+                }
+              });
+              dropdown.appendChild(deleteBtn);
+            }
+
+            wrapper.appendChild(dropdown);
+            setTimeout(() => {
+              document.addEventListener('click', () => dropdown.remove(), { once: true });
+            }, 0);
+          });
+
+          wrapper.appendChild(menuBtn);
+        }
       }
 
       content.appendChild(wrapper);
@@ -1371,132 +1416,182 @@ function renderChannels(channels) {
         : `🔊 ${escapeHtml(getChannelDisplayName(ch))}`;
       btn.dataset.name = getChannelDisplayName(ch);
 
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
+        if (ch.is_private) {
+          const user = getUser();
+          const isOwner = currentWorkspace?.user_id === user?.user_id;
+          const isAdmin = currentWorkspace?.myRole === 'admin';
+          if (!isOwner && !isAdmin) {
+            const token = getToken();
+            try {
+              const res = await fetch(`${API_BASE}/channels/${ch.channel_id}/access`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+              const accessList = res.ok ? await res.json() : [];
+              const cached = window._channelAccessCache?.[ch.channel_id];
+              const list = (Array.isArray(accessList) && accessList.length) ? accessList : (cached || []);
+              if (!window._channelAccessCache) window._channelAccessCache = {};
+              window._channelAccessCache[ch.channel_id] = list;
+              if (!list.some(a => a.user_id === user?.user_id)) {
+                showErrorModal('You do not have permission to access this channel.');
+                return;
+              }
+            } catch (err) {
+              showErrorModal('You do not have permission to access this channel.');
+              return;
+            }
+          }
+        }
         document.querySelectorAll('.channel').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         showVoiceChannelJoinConfirmation(ch.channel_id, getChannelDisplayName(ch));
       });
 
       if ((isOwner || isAdmin) && !isDefaultChannel(ch)) {
-        const menuBtn = document.createElement('button');
-        menuBtn.innerHTML = '⋯';
-        menuBtn.style.cssText = `
-          position: absolute; right: 8px; top: 50%;
-          transform: translateY(-50%);
-          background: none; border: none;
-          font-size: 16px; font-weight: 900;
-          cursor: pointer; color: #aaa;
-          padding: 0 4px; line-height: 1;
-          display: none;
-          z-index: 1;
-        `;
+        const canRename = isOwner || (!ch.is_private && isAdmin);
+        const canDelete = isOwner;
 
-        wrapper.addEventListener('mouseenter', () => menuBtn.style.display = 'block');
-        wrapper.addEventListener('mouseleave', () => menuBtn.style.display = 'none');
+        if (canRename || canDelete) {
+          if (isOwner && ch.is_private) {
+            const manageBtn = document.createElement('button');
+            manageBtn.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+            manageBtn.title = 'Manage Access';
+            manageBtn.style.cssText = `
+              position: absolute; right: 30px; top: 50%;
+              transform: translateY(-50%);
+              background: none; border: none;
+              cursor: pointer; color: #aaa;
+              padding: 0 4px; line-height: 1;
+              display: none; align-items: center; justify-content: center;
+              z-index: 1;
+            `;
+            wrapper.addEventListener('mouseenter', () => manageBtn.style.display = 'flex');
+            wrapper.addEventListener('mouseleave', () => manageBtn.style.display = 'none');
+            manageBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              showChannelAccessModal(ch.channel_id, getChannelDisplayName(ch));
+            });
+            wrapper.appendChild(manageBtn);
+          }
 
-        menuBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          document.querySelectorAll('.ch-dropdown').forEach(d => d.remove());
-
-          const dropdown = document.createElement('div');
-          dropdown.className = 'ch-dropdown';
-          dropdown.style.cssText = `
-            position: absolute; right: 0; top: 100%;
-            background: #fff; border: 2px solid #111;
-            z-index: 999; min-width: 140px;
-            box-shadow: 4px 4px 0 #111;
+          const menuBtn = document.createElement('button');
+          menuBtn.innerHTML = '⋯';
+          menuBtn.style.cssText = `
+            position: absolute; right: 8px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none;
+            font-size: 16px; font-weight: 900;
+            cursor: pointer; color: #aaa;
+            padding: 0 4px; line-height: 1;
+            display: none;
+            z-index: 1;
           `;
 
-          if (isDefaultChannel(ch)) {
-            dropdown.innerHTML = `<div style="padding:10px 14px;font-size:11px;color:#aaa;font-family:'DM Sans',Arial,sans-serif;font-weight:600;">Default channel —<br>cannot be edited.</div>`;
-          } else {
-            const renameBtn = document.createElement('button');
-            renameBtn.textContent = 'Rename';
-            renameBtn.style.cssText = `
-              width: 100%; padding: 10px 14px; border: none;
-              background: none; text-align: left;
-              font-family: 'DM Sans', Arial, sans-serif;
-              font-size: 12px; font-weight: 700;
-              text-transform: uppercase; cursor: pointer;
-              border-bottom: 1px solid #eee;
-            `;
-            renameBtn.addEventListener('mouseenter', () => renameBtn.style.background = '#f4f4f4');
-            renameBtn.addEventListener('mouseleave', () => renameBtn.style.background = 'none');
-            renameBtn.addEventListener('click', (e) => {
+          wrapper.addEventListener('mouseenter', () => menuBtn.style.display = 'block');
+          wrapper.addEventListener('mouseleave', () => menuBtn.style.display = 'none');
+
+          menuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            dropdown.remove();
-            showModal({
-              title:       'RENAME CHANNEL',
-              label:       'NEW CHANNEL NAME',
-              placeholder: getChannelDisplayName(ch),
-              confirmText: 'RENAME',
-              onConfirm:   async (newName) => {
+            document.querySelectorAll('.ch-dropdown').forEach(d => d.remove());
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'ch-dropdown';
+            dropdown.style.cssText = `
+              position: absolute; right: 0; top: 100%;
+              background: #fff; border: 2px solid #111;
+              z-index: 999; min-width: 140px;
+              box-shadow: 4px 4px 0 #111;
+            `;
+
+            if (canRename) {
+              const renameBtn = document.createElement('button');
+              renameBtn.textContent = 'Rename';
+              renameBtn.style.cssText = `
+                width: 100%; padding: 10px 14px; border: none;
+                background: none; text-align: left;
+                font-family: 'DM Sans', Arial, sans-serif;
+                font-size: 12px; font-weight: 700;
+                text-transform: uppercase; cursor: pointer;
+                border-bottom: 1px solid #eee;
+              `;
+              renameBtn.addEventListener('mouseenter', () => renameBtn.style.background = '#f4f4f4');
+              renameBtn.addEventListener('mouseleave', () => renameBtn.style.background = 'none');
+              renameBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.remove();
+                showModal({
+                  title:       'RENAME CHANNEL',
+                  label:       'NEW CHANNEL NAME',
+                  placeholder: getChannelDisplayName(ch),
+                  confirmText: 'RENAME',
+                  onConfirm:   async (newName) => {
+                    const token = getToken();
+                    const isVoice = getChannelType(ch) === 'voice';
+                    const storeName = isVoice ? `voice_${newName}` : newName.toLowerCase();
+                    try {
+                      const res = await fetch(`${API_BASE}/channels/${ch.channel_id}`, {
+                        method:  'PATCH',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ name: storeName }),
+                      });
+                      if (!res.ok) {
+                        const data = await res.json();
+                        showErrorModal(data.error || 'Failed to rename channel');
+                        return;
+                      }
+                      loadWorkspace(currentWorkspace);
+                    } catch (err) {
+                      showErrorModal('Could not rename channel. Check your connection.');
+                    }
+                  },
+                });
+              });
+              dropdown.appendChild(renameBtn);
+            }
+
+            if (canDelete) {
+              const deleteBtn = document.createElement('button');
+              deleteBtn.textContent = 'Delete';
+              deleteBtn.style.cssText = `
+                width: 100%; padding: 10px 14px; border: none;
+                background: none; text-align: left;
+                font-family: 'DM Sans', Arial, sans-serif;
+                font-size: 12px; font-weight: 700;
+                text-transform: uppercase; cursor: pointer;
+                color: #cc1414;
+              `;
+              deleteBtn.addEventListener('mouseenter', () => deleteBtn.style.background = '#fff0f0');
+              deleteBtn.addEventListener('mouseleave', () => deleteBtn.style.background = 'none');
+              deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                dropdown.remove();
                 const token = getToken();
-                const isVoice = getChannelType(ch) === 'voice';
-                const storeName = isVoice ? `voice_${newName}` : newName.toLowerCase();
                 try {
                   const res = await fetch(`${API_BASE}/channels/${ch.channel_id}`, {
-                    method:  'PATCH',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ name: storeName }),
+                    method:  'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
                   });
                   if (!res.ok) {
                     const data = await res.json();
-                    showErrorModal(data.error || 'Failed to rename channel');
+                    showErrorModal(data.error || 'Failed to delete channel');
                     return;
                   }
                   loadWorkspace(currentWorkspace);
                 } catch (err) {
-                  showErrorModal('Could not rename channel. Check your connection.');
+                  showErrorModal('Could not delete channel. Check your connection.');
                 }
-              },
               });
-            });
+              dropdown.appendChild(deleteBtn);
+            }
 
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Delete';
-            deleteBtn.style.cssText = `
-              width: 100%; padding: 10px 14px; border: none;
-              background: none; text-align: left;
-              font-family: 'DM Sans', Arial, sans-serif;
-              font-size: 12px; font-weight: 700;
-              text-transform: uppercase; cursor: pointer;
-              color: #cc1414;
-            `;
-            deleteBtn.addEventListener('mouseenter', () => deleteBtn.style.background = '#fff0f0');
-            deleteBtn.addEventListener('mouseleave', () => deleteBtn.style.background = 'none');
-            deleteBtn.addEventListener('click', async (e) => {
-              e.stopPropagation();
-              dropdown.remove();
-              const token = getToken();
-              try {
-                const res = await fetch(`${API_BASE}/channels/${ch.channel_id}`, {
-                  method:  'DELETE',
-                  headers: { 'Authorization': `Bearer ${token}` },
-                });
-                if (!res.ok) {
-                  const data = await res.json();
-                  showErrorModal(data.error || 'Failed to delete channel');
-                  return;
-                }
-                loadWorkspace(currentWorkspace);
-              } catch (err) {
-                showErrorModal('Could not delete channel. Check your connection.');
-              }
-            });
+            wrapper.appendChild(dropdown);
+            setTimeout(() => {
+              document.addEventListener('click', () => dropdown.remove(), { once: true });
+            }, 0);
+          });
 
-            dropdown.appendChild(renameBtn);
-            if (isOwner) dropdown.appendChild(deleteBtn);
-          }
-
-          wrapper.appendChild(dropdown);
-
-          setTimeout(() => {
-            document.addEventListener('click', () => dropdown.remove(), { once: true });
-          }, 0);
-        });
-
-        wrapper.appendChild(menuBtn);
+          wrapper.appendChild(menuBtn);
+        }
       }
 
       const membersSub = document.createElement('div');
@@ -1521,6 +1616,182 @@ function renderChannels(channels) {
   }
 
   attachChannelButtonListener();
+}
+
+// ─── Channel Access Modal ─────────────────────────────────────────────────────
+
+async function showChannelAccessModal(channelId, channelName) {
+  const existing = document.getElementById('ch-access-modal-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'ch-access-modal-overlay';
+  overlay.style.cssText = `
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+  `;
+
+  overlay.innerHTML = `
+    <div style="width:400px; background:#fff; border:2px solid #111; font-family:'DM Sans',Arial,sans-serif;">
+      <div style="background:#111; color:#fff; font-size:13px; font-weight:900; letter-spacing:0.15em; padding:14px 18px; font-family:'Black Han Sans',sans-serif; display:flex; align-items:center; justify-content:space-between;">
+        <span>🔒 ${escapeHtml(channelName)} — ACCESS</span>
+        <button id="ch-access-close" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;font-weight:900;line-height:1;">✕</button>
+      </div>
+      <div style="padding:16px 18px; border-bottom:2px solid #111;">
+        <div style="font-size:10px; font-weight:700; letter-spacing:0.12em; color:#666; text-transform:uppercase; margin-bottom:10px;">MEMBERS WITH ACCESS</div>
+        <div id="ch-access-list" style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto;">
+          <div style="text-align:center; padding:20px; color:#aaa; font-size:13px;">Loading...</div>
+        </div>
+      </div>
+      <div style="padding:14px 18px;">
+        <div style="font-size:10px; font-weight:700; letter-spacing:0.12em; color:#666; text-transform:uppercase; margin-bottom:10px;">ADD MEMBER</div>
+        <div style="display:flex; gap:8px;">
+          <select id="ch-access-select" style="flex:1; height:40px; border:2px solid #111; background:#f4f4f4; font-family:'DM Sans',Arial,sans-serif; font-size:13px; padding:0 10px; outline:none;">
+            <option value="">Select a member...</option>
+          </select>
+          <button id="ch-access-add-btn" style="height:40px; padding:0 16px; border:none; background:#111; color:#fff; font-family:'DM Sans',Arial,sans-serif; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;">ADD</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const token = getToken();
+  if (!window._channelAccessCache) window._channelAccessCache = {};
+  let localAccessList = window._channelAccessCache[channelId] ? [...window._channelAccessCache[channelId]] : [];
+
+  async function loadAccess() {
+    const list = document.getElementById('ch-access-list');
+    const select = document.getElementById('ch-access-select');
+    try {
+      const membersRes = await fetch(`${API_BASE}/workspaces/${currentWorkspace.workspace_id}/members`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const allMembers = membersRes.ok ? await membersRes.json() : [];
+      const me = getUser();
+
+      try {
+        const accessRes = await fetch(`${API_BASE}/channels/${channelId}/access`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (accessRes.ok) {
+          const data = await accessRes.json();
+          if (Array.isArray(data) && data.length) {
+            localAccessList = data;
+            window._channelAccessCache[channelId] = [...data];
+          }
+        }
+      } catch (e) {
+        console.warn('Access endpoint not available, using local list');
+      }
+
+      const accessIds = new Set(localAccessList.map(a => a.user_id));
+      const ownerMember = allMembers.find(m => m.user_id === currentWorkspace.user_id);
+      const displayList = localAccessList.filter(a => a.user_id !== currentWorkspace.user_id);
+
+      const ownerRow = ownerMember ? `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #eee;background:#f9f9f9;">
+          <div style="width:32px;height:32px;background:#cc1414;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:13px;flex-shrink:0;overflow:hidden;">
+            ${ownerMember.avatar_url ? `<img src="${escapeHtml(ownerMember.avatar_url)}" style="width:100%;height:100%;object-fit:cover;" />` : (ownerMember.name || 'O').charAt(0).toUpperCase()}
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">${escapeHtml(ownerMember.name || 'Owner')} <span style="color:#cc1414;font-size:10px;">OWNER</span></div>
+            <div style="font-size:11px;color:#888;">Full access</div>
+          </div>
+        </div>` : '';
+
+      const memberRows = displayList.map(a => {
+        const matched = allMembers.find(m => m.user_id === a.user_id) || a;
+        const initial = (matched.name || 'U').charAt(0).toUpperCase();
+        const isMe = a.user_id === me?.user_id;
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #eee;">
+            <div style="width:32px;height:32px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:13px;flex-shrink:0;overflow:hidden;">
+              ${matched.avatar_url ? `<img src="${escapeHtml(matched.avatar_url)}" style="width:100%;height:100%;object-fit:cover;" />` : initial}
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;">${escapeHtml(matched.name || 'Unknown')} ${isMe ? '<span style="color:#cc1414;font-size:10px;">(YOU)</span>' : ''}</div>
+              <div style="font-size:11px;color:#888;">${escapeHtml(matched.role || 'member')}</div>
+            </div>
+            <button class="ch-access-remove-btn" data-user-id="${a.user_id}" style="border:none;background:none;color:#cc1414;cursor:pointer;font-size:13px;font-weight:700;padding:4px 8px;" title="Remove access">✕</button>
+          </div>`;
+      }).join('');
+
+      list.innerHTML = ownerRow + (displayList.length ? memberRows : `<div style="text-align:center;padding:12px;color:#aaa;font-size:13px;">No other members have access yet.</div>`);
+
+      list.querySelectorAll('.ch-access-remove-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const userId = btn.dataset.userId;
+          try {
+            await fetch(`${API_BASE}/channels/${channelId}/access/${userId}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+          } catch (e) {}
+          localAccessList = localAccessList.filter(a => a.user_id !== userId);
+          window._channelAccessCache[channelId] = [...localAccessList];
+          loadAccess();
+        });
+      });
+
+      select.innerHTML = '<option value="">Select a member...</option>';
+      allMembers
+        .filter(m => !accessIds.has(m.user_id) && m.user_id !== currentWorkspace.user_id)
+        .forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.user_id;
+          opt.textContent = (m.name || m.username || 'Unknown') + (m.role === 'admin' ? ' (Admin)' : '');
+          select.appendChild(opt);
+        });
+
+    } catch (err) {
+      console.error('loadAccess error:', err);
+      document.getElementById('ch-access-list').innerHTML = `<div style="text-align:center;padding:16px;color:#cc1414;font-size:13px;">Failed to load members.</div>`;
+    }
+  }
+
+  loadAccess();
+
+  document.getElementById('ch-access-close').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  document.getElementById('ch-access-add-btn').addEventListener('click', async () => {
+    const select = document.getElementById('ch-access-select');
+    const userId = select.value;
+    if (!userId) return;
+
+    const addBtn = document.getElementById('ch-access-add-btn');
+    addBtn.disabled = true;
+    addBtn.textContent = '...';
+
+    try {
+      await fetch(`${API_BASE}/channels/${channelId}/access`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId }),
+      });
+    } catch (e) {
+      console.warn('POST access endpoint not available');
+    }
+
+    const membersRes = await fetch(`${API_BASE}/workspaces/${currentWorkspace.workspace_id}/members`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    const allMembers = membersRes.ok ? await membersRes.json() : [];
+    const member = allMembers.find(m => m.user_id === userId);
+    if (member && !localAccessList.some(a => a.user_id === userId)) {
+      localAccessList.push(member);
+    }
+    window._channelAccessCache[channelId] = [...localAccessList];
+
+    addBtn.disabled = false;
+    addBtn.textContent = 'ADD';
+    select.value = '';
+    loadAccess();
+  });
 }
 
 // ─── Create Channel ───────────────────────────────────────────────────────────
