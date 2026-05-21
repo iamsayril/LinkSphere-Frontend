@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workspace Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/server-settings.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="title-wrap">
+        <button onclick="window.location.href='../html/workspace.html'" class="icon-btn" aria-label="Go back" data-ripple>←</button>
+        <h1 id="topbar-title">Workspace Settings</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="burger-btn" id="burgerBtn" aria-label="Menu" data-ripple>☰</button>
+      </div>
+    </header>
+
+    <!-- Burger Menu Dropdown -->
+    <div class="burger-menu" id="burgerMenu" style="display:none;">
+      <button class="burger-menu-item" onclick="window.location.href='../html/notification.html'" data-ripple>
+        <i data-lucide="bell"></i>
+        <span>Notifications</span>
+      </button>
+      <button class="burger-menu-item" data-tab="members" data-ripple>
+        <i data-lucide="users"></i>
+        <span>Members</span>
+      </button>
+      <button class="burger-menu-item" data-tab="settings" data-ripple>
+        <i data-lucide="settings"></i>
+        <span>Settings</span>
+      </button>
+    </div>
+
+    <!-- ── Settings view ─────────────────────────────────────────────────── -->
+    <main class="content" id="settings-view">
+
+      <!-- Hero / Icon card -->
+      <section class="hero-card reveal">
+
+        <!-- Hidden file input — triggered by clicking the avatar button -->
+        <input
+          type="file"
+          id="iconFileInput"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          style="display:none;"
+        />
+
+        <button class="avatar-wrap" id="avatarBtn" aria-label="Update workspace icon">
+          <!-- Icon rendered by JS (img or initial letter) -->
+          <div class="avatar-inner" id="avatarInner">
+            <span class="avatar-initial" id="avatarInitial">?</span>
+          </div>
+          <span class="avatar-overlay">
+            <span class="avatar-overlay-icon">✎</span>
+            <span class="avatar-overlay-text">Change Icon</span>
+          </span>
+        </button>
+
+        <h2 id="heroIconLabel">Update Icon</h2>
+
+        <!-- Upload progress / status shown below the avatar -->
+        <div class="icon-upload-status" id="iconUploadStatus" style="display:none;">
+          <div class="icon-upload-bar">
+            <div class="icon-upload-fill" id="iconUploadFill"></div>
+          </div>
+          <span class="icon-upload-msg" id="iconUploadMsg">Uploading…</span>
+        </div>
+
+        <!-- Remove icon button — only visible when a custom icon is set -->
+        <button class="remove-icon-btn" id="removeIconBtn" style="display:none;" data-ripple>
+          <i data-lucide="trash-2"></i>
+          Remove Icon
+        </button>
+
+      </section>
+
+      <!-- Administration -->
+      <section class="settings-section reveal">
+        <h2>Administration</h2>
+        <div class="menu-list">
+          <button class="menu-row" data-ripple><span class="row-left"><i data-lucide="shield-user"></i>Roles</span><span>›</span></button>
+          <button class="menu-row" data-ripple><span class="row-left"><i data-lucide="laugh"></i>Emoji</span><span>›</span></button>
+          <button class="menu-row" data-ripple><span class="row-left"><i data-lucide="message-square-text"></i>Stickers</span><span>›</span></button>
+          <button class="menu-row" data-ripple><span class="row-left"><i data-lucide="volume-2"></i>Soundboard</span><span>›</span></button>
+        </div>
+      </section>
+
+      <!-- Moderation -->
+      <section class="settings-section reveal">
+        <h2>Moderation</h2>
+        <div class="menu-list">
+          <button class="menu-row" data-ripple><span class="row-left"><i data-lucide="shield"></i>Safety Setup</span><span>›</span></button>
+          <button class="menu-row active" data-ripple><span class="row-left"><i data-lucide="list"></i>Audit Log</span><span>›</span></button>
+          <button class="menu-row" data-ripple><span class="row-left"><i data-lucide="gavel"></i>Bans</span><i data-lucide="ban"></i></button>
+        </div>
+      </section>
+
+      <!-- Invite code -->
+      <section class="invite-section reveal">
+        <h2>Invite Code</h2>
+        <p class="invite-desc">Share this code so others can join your workspace instantly.</p>
+        <div class="invite-card">
+          <div class="invite-code-wrap">
+            <span class="invite-label">YOUR CODE</span>
+            <span class="invite-code" id="inviteCode">––––––––</span>
+          </div>
+          <div class="invite-actions">
+            <button class="invite-btn copy-btn" id="copyBtn" data-ripple title="Copy code">
+              <i data-lucide="copy"></i>
+              <span>Copy</span>
+            </button>
+            <button class="invite-btn regen-btn" id="regenBtn" data-ripple title="Generate new code">
+              <i data-lucide="refresh-cw"></i>
+              <span>New</span>
+            </button>
+          </div>
+        </div>
+        <p class="invite-hint" id="inviteHint">Loading invite code…</p>
+      </section>
+
+      <!-- Action Footer -->
+      <section class="action-footer reveal">
+        <button class="save-btn" id="saveBtn" data-ripple>Save Changes</button>
+      </section>
+
+      <!-- Danger zone -->
+      <section class="danger-zone reveal">
+        <div>
+          <h2>Danger Zone</h2>
+          <p>Once you delete a workspace, there is no going back. Please be certain.</p>
+        </div>
+        <button class="delete-btn" data-ripple>Delete Workspace</button>
+      </section>
+
+    </main>
+
+    <!-- ── Members view ───────────────────────────────────────────────────── -->
+    <main class="content members-content" id="members-view" style="display:none;">
+      <div class="members-header reveal">
+        <h2 class="members-title">Members</h2>
+        <span class="members-count" id="membersCount">—</span>
+      </div>
+      <div id="members-list" class="members-list reveal">
+        <div class="spinner-wrap"><div class="members-spinner"></div></div>
+      </div>
+    </main>
+
+    <div class="toast" id="toast">Changes saved successfully</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<script src="../js/server-settings.js"></script>
+<script src="../js/call-handler.js"></script>
+</body>
+</html>
