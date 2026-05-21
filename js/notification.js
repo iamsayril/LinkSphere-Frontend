@@ -655,9 +655,10 @@ function initSocket() {
     if (!isPushOn())                           return;
     if (data.reaction?.channel_id && isChannelMuted(data.reaction.channel_id)) return;
     const msg = `${data.reactor_name || 'Someone'} reacted to your message in #${data.channel_name || 'channel'}`;
-    injectNotif('New Reaction', msg, 'reaction');
+    const title = `#${data.channel_name || 'channel'}`;
+    injectNotif(title, msg, 'reaction');
     updateUnreadBadge();
-    saveNotif('New Reaction', msg, 'reaction');
+    saveNotif(title, msg, 'reaction');
   });
 
   socket.on('role_updated', async data => {
