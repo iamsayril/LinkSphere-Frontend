@@ -3,101 +3,115 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Linksphere Notification</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <title>Notifications — Linksphere</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../css/notification.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="hamburger" aria-label="menu"><span></span><span></span><span></span></div>
-    <div class="brand-mark">✣</div>
-    <div class="brand">LINKSPHERE</div>
-  </header>
 
-  <main class="page">
-    <section class="section reveal">
-      <div class="section-title live-title">
-        <h1>Live Feed</h1>
-        <span>Real-time updates</span>
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Burger Sidebar -->
+  <aside class="burger-sidebar" id="burger-sidebar">
+    <div class="burger-sidebar-header">
+      <span class="burger-sidebar-logo">✣</span>
+      <span class="burger-sidebar-title">LINKSPHERE</span>
+      <button class="burger-close-btn" id="burger-close-btn">✕</button>
+    </div>
+    <nav class="burger-nav">
+      <button class="burger-nav-item" onclick="window.location.href='workspace.html'">
+        <span class="burger-nav-icon">💬</span>
+        <span>Workspace</span>
+      </button>
+      <button class="burger-nav-item" onclick="window.location.href='messages.html'">
+        <span class="burger-nav-icon">✉</span>
+        <span>Messages</span>
+      </button>
+      <button class="burger-nav-item active">
+        <span class="burger-nav-icon">🔔</span>
+        <span>Notifications</span>
+      </button>
+      <button class="burger-nav-item" onclick="window.location.href='profile.html'">
+        <span class="burger-nav-icon">👤</span>
+        <span>Profile</span>
+      </button>
+    </nav>
+  </aside>
+
+  <div class="app-shell">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="burger-btn" id="burger-btn">
+          <span></span><span></span><span></span>
+        </button>
+        <h1 class="topbar-title">NOTIFICATIONS</h1>
+        <span class="unread-badge" id="unread-badge" style="display:none;">0</span>
       </div>
+      <div class="topbar-right">
+        <button class="topbar-action-btn" id="mark-all-btn" title="Mark all as read">✓ ALL READ</button>
+        <button class="topbar-action-btn danger" id="clear-all-btn" title="Clear all">🗑 CLEAR</button>
+      </div>
+    </header>
 
-      <article class="feed-card">
-        <div class="mention panel-block">
-          <div class="meta-row">
-            <strong><span class="red icon">@</span> Mention</strong>
-            <span>2M Ago</span>
-          </div>
-          <h2>@Mark mentioned you in <em>High Cortisol</em></h2>
-          <p>"Aha namo guys"</p>
-          <div class="actions">
-            <button class="btn primary">Reply</button>
-            <button class="btn ghost">Dismiss</button>
-          </div>
+    <!-- Page Body -->
+    <div class="page-body">
+
+      <!-- Left: Live Feed -->
+      <section class="feed-section">
+        <div class="section-title">
+          <h2>LIVE FEED</h2>
+          <span>Real-time updates</span>
         </div>
 
-        <div class="message panel-block slim">
-          <div class="meta-row">
-            <strong><span class="bubble"></span>#General</strong>
-            <span class="arrow">→</span>
+        <!-- Filter Tabs -->
+        <div class="filter-bar">
+          <button class="filter-tab active" data-filter="all">ALL</button>
+          <button class="filter-tab" data-filter="unread">UNREAD</button>
+        </div>
+
+        <main class="notif-list" id="notif-list">
+          <div class="notif-spinner-wrap" id="notif-spinner">
+            <div class="notif-spinner"></div>
           </div>
-          <h3>New Message</h3>
-          <p>"@Mark promoted you as a <span>moderator</span>...</p>
+        </main>
+      </section>
+
+      <!-- Right: Notification Control -->
+      <section class="notif-control">
+        <div class="section-title">
+          <h2>NOTIFICATION<br>CONTROL</h2>
+          <span>Preferences</span>
         </div>
 
-        <div class="reaction panel-block slim">
-          <div class="meta-row left-only">
-            <strong><span class="heart">♥</span> Reaction</strong>
+        <div class="push-card">
+          <div>
+            <h3>Push Alerts</h3>
+            <p>System-level critical alerts.</p>
           </div>
-          <p><b>Fhitz</b> reacted with <mark>"HEART"</mark> to your message in # general</p>
-          <small>15M Ago</small>
+          <button class="switch active" id="pushSwitch" aria-label="toggle push alerts"><span></span></button>
         </div>
-      </article>
-    </section>
 
-    <section class="section controls reveal">
-      <div class="section-title control-title">
-        <h1>Notification<br>Control</h1>
-        <span>Preferences</span>
-      </div>
-
-      <div class="push-card">
-        <div>
-          <h3>Push Alerts</h3>
-          <p>System-level critical alerts.</p>
+        <div class="muted-card">
+          <div class="muted-head">
+            <span>Muted Channels</span>
+            <span id="activeCount">0 Muted</span>
+          </div>
+          <div id="muted-channels-list"></div>
+          <button class="add-channel" id="add-mute-btn">+ Add Channel To Mute List</button>
         </div>
-        <button class="switch active" id="pushSwitch" aria-label="toggle push alerts"><span></span></button>
-      </div>
 
-      <div class="priority-card">
-        <div class="card-label">Mention alerts priority</div>
-        <button class="priority active" data-priority="Always Active">Always Active <span></span></button>
-        <button class="priority" data-priority="Smart Filter">Smart Filter <span></span></button>
-        <button class="priority" data-priority="Never">Never <span></span></button>
-      </div>
+      </section>
 
-      <div class="muted-card">
-        <div class="muted-head"><span>Muted Channels</span><span id="activeCount">3 Active</span></div>
-        <div class="channel"><b>#Random-Chat</b><button>Unmute</button></div>
-        <div class="channel"><b>#Marketing-<br>Sync</b><button>Unmute</button></div>
-        <div class="channel"><b>#Legacy-Docs</b><button>Unmute</button></div>
-        <button class="add-channel">+ Add Channel To Mute List</button>
-      </div>
-    </section>
-  </main>
+    </div>
 
-  <nav class="bottom-nav">
-    <a href="#"><span>⌂</span>Start</a>
-    <a href="#"><span>◉</span>Search</a>
-    <a href="#" class="current"><span>♧</span>Notification</a>
-    <a href="#"><span>▦</span>Workspace</a>
-  </nav>
+  </div>
 
-  <div class="toast" id="toast">Preference updated</div>
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
-<script src="../js/notification.js"></script>
-<script src="../js/call-handler.js"></script>
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="../js/notification.js"></script>
 </body>
 </html>
