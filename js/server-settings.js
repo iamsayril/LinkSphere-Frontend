@@ -1,5 +1,13 @@
 const API_BASE = 'https://linksphere-5bef.onrender.com/api';
 
+// ── Authentication Check ───────────────────────────────────────────────────────
+(function() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '../html/login.html';
+  }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   lucide.createIcons();
 
@@ -29,12 +37,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentWorkspace  = null;
   let pendingIconFile   = null;
   let currentIconUrl    = null;
+  let toastTimeout      = null;
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   function showToast(msg) {
+    if (toastTimeout) clearTimeout(toastTimeout);
     toast.textContent = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2200);
+    toastTimeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2200);
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -137,19 +149,28 @@ document.addEventListener('DOMContentLoaded', () => {
     removeIconBtn.textContent = 'Removing…';
 
     try {
+      // Use FormData with empty/null to clear icon via icon endpoint
+      const formData = new FormData();
+      formData.append('icon', new Blob(), ''); // Send empty blob
+
       const res = await fetch(`${API_BASE}/workspaces/${wsId}/icon`, {
-        method:  'DELETE',
+        method:  'PATCH',
         headers: { 'Authorization': `Bearer ${token}` },
+        body:    formData,
       });
 
-      if (!res.ok && res.status !== 404) {
+      if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `Server error ${res.status}`);
       }
 
+      // Fully delete the icon
       currentIconUrl = null;
       pendingIconFile = null;
+      
+      // Update UI to show icon removed
       renderAvatar(nameInput.value || currentWorkspace?.name || '', null);
+      if (currentWorkspace) currentWorkspace.icon_url = null;
 
       try {
         window.dispatchEvent(new CustomEvent('workspace:icon_updated', {
@@ -164,6 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('COULD NOT REMOVE ICON');
     } finally {
       removeIconBtn.disabled = false;
+      removeIconBtn.textContent = '';
+      removeIconBtn.innerHTML = '<i data-lucide="trash-2"></i> Remove Icon';
       lucide.createIcons();
     }
   });
@@ -224,11 +247,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const name  = nameInput.value.trim();
 
     if (!name) { showToast('WORKSPACE NAME CANNOT BE EMPTY'); return; }
-    if (!token || !wsId) { showToast('NOT AUTHENTICATED'); return; }
+    if (!token) { showToast('NOT AUTHENTICATED — PLEASE LOG IN'); return; }
+    if (!wsId) { showToast('NO WORKSPACE SELECTED'); return; }
 
     saveBtn.textContent = 'Saving…';
     saveBtn.disabled = true;
     saveBtn.style.pointerEvents = 'none';
+
+    let iconUploaded = false;
+    let nameUpdated = false;
 
     try {
       // 1. Upload pending icon if one was selected
@@ -261,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingIconFile = null;
         renderAvatar(name, currentIconUrl);
         setUploadStatus(true, 'Icon saved!', 100, 'success');
+        iconUploaded = true;
 
         try {
           window.dispatchEvent(new CustomEvent('workspace:icon_updated', {
@@ -287,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentWorkspace) currentWorkspace.name = name;
       if (workspaceDesc) workspaceDesc.textContent = `#${name.toLowerCase()}`;
       if (!currentIconUrl) renderAvatar(name, null);
+      nameUpdated = true;
 
       try {
         window.dispatchEvent(new CustomEvent('workspace:name_updated', {
@@ -297,7 +326,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // 4. Success feedback
       saveBtn.textContent = '✓ Saved';
       saveBtn.classList.add('save-success');
-      showToast('CHANGES SAVED');
+      showToast('CHANGES SAVED SUCCESSFULLY');
+      
       setTimeout(() => {
         saveBtn.textContent = 'Save Changes';
         saveBtn.classList.remove('save-success');
@@ -305,7 +335,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       console.error('saveBtn error:', err);
-      showToast(err.message || 'COULD NOT REACH SERVER');
+      const errorMsg = err.message || 'COULD NOT SAVE CHANGES';
+      // Filter out confusing backend errors
+      const userMsg = errorMsg.includes('userid') ? 'SESSION EXPIRED — PLEASE LOG IN AGAIN' : errorMsg;
+      showToast(userMsg);
       renderAvatar(nameInput.value || currentWorkspace?.name || '', currentIconUrl);
       setUploadStatus(false);
       saveBtn.textContent = 'Save Changes';

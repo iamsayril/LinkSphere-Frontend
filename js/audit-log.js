@@ -1,5 +1,13 @@
 const API_BASE = 'https://linksphere-5bef.onrender.com/api';
 
+// ── Authentication Check ───────────────────────────────────────────────────────
+(function() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '../html/login.html';
+  }
+})();
+
 // ── Sidebar ────────────────────────────────────────────────────
 const menuBtn        = document.getElementById('menu-btn');
 const sidebar        = document.getElementById('sidebar');
@@ -68,15 +76,23 @@ async function loadSidebarUser() {
 
   const userNameEl = document.getElementById('sidebar-user-name');
   const avatarEl = document.getElementById('sidebar-avatar');
+  const roleEl = document.querySelector('.sidebar-user-role');
 
-  if (userNameEl) userNameEl.textContent = (user.username || 'User').toUpperCase();
+  const name = user.name || 'USER';
+  
+  if (userNameEl) userNameEl.textContent = name.toUpperCase();
+  
+  // Set role to Admin since this is audit-log page and user owns the workspace
+  if (roleEl) roleEl.textContent = 'Admin';
   
   if (avatarEl) {
-    const initial = (user.username || '?').charAt(0).toUpperCase();
     if (user.avatar_url) {
-      avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.username}" />`;
+      avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${name}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
     } else {
-      avatarEl.textContent = initial;
+      const parts = name.trim().split(' ');
+      avatarEl.textContent = parts.length >= 2
+        ? (parts[0][0] + parts[1][0]).toUpperCase()
+        : name.charAt(0).toUpperCase();
     }
   }
 }

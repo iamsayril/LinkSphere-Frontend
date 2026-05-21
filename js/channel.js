@@ -1,5 +1,13 @@
 'use strict';
 
+// ── Authentication Check ───────────────────────────────────────────────────────
+(function() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '../html/login.html';
+  }
+})();
+
 // ─── LiveKit SDK ──────────────────────────────────────────────────────────────
 const { Room, RoomEvent, Track } = LivekitClient;
 

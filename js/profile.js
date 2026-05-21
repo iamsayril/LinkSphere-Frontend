@@ -1,5 +1,13 @@
 const API_BASE = 'https://linksphere-5bef.onrender.com/api';
 
+// ── Authentication Check ───────────────────────────────────────────────────────
+(function() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '../html/login.html';
+  }
+})();
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 function getToken() {

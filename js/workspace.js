@@ -1,6 +1,14 @@
 const API_BASE = 'https://linksphere-5bef.onrender.com/api';
 const SOCKET_URL = 'https://linksphere-5bef.onrender.com';
 
+// ── Authentication Check ───────────────────────────────────────────────────────
+(function() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '../html/login.html';
+  }
+})();
+
 let currentWorkspace     = null;
 let currentChannelId     = null;
 let currentChannelName   = null;

@@ -315,6 +315,55 @@ button {
   font-weight: 800;
 }
 
+/* Workspace name section */
+.workspace-name-section {
+  background: #fff;
+  border: var(--line);
+  padding: 24px;
+}
+
+.workspace-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.workspace-name-field label {
+  display: block;
+  text-transform: uppercase;
+  color: #6b6b6b;
+  letter-spacing: 1.8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workspace-name-field input {
+  width: 100%;
+  border: var(--line);
+  padding: 8px 10px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  text-transform: uppercase;
+  color: #1b1b1b;
+  background: #fff;
+  outline: none;
+  transition: box-shadow .2s, transform .2s;
+}
+
+.workspace-name-field input:focus {
+  box-shadow: 3px 3px 0 var(--red);
+  transform: translate(-1px, -1px);
+}
+
+.workspace-name-field p {
+  margin: 6px 0 0;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
 /* ── Upload progress bar ─────────────────────────────────────────────────── */
 
 .icon-upload-status {
