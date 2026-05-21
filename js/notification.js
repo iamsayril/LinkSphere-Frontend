@@ -479,7 +479,7 @@ function initSocket() {
 
   socket.on('new_dm', async data => {
     if (data.sender_id === me.user_id || !isPushOn()) return;
-    await saveNotif('New Direct Message', `You have a new message from ${data.sender_name || 'Someone'}`, 'dm');
+    await saveNotif('New Direct Message', `You have a new message from ${data.sender_name || data.sender_username || 'Someone'}`, 'dm');
     loadNotifications();
     updateUnreadBadge();
     showToast(`New message from ${data.sender_name || 'Someone'}`);
@@ -490,6 +490,7 @@ function initSocket() {
     await saveNotif(`#${data.channel_name || 'channel'}`, `New message from ${data.sender_name || 'Someone'}`, 'channel_message');
     loadNotifications();
     updateUnreadBadge();
+    showToast(`New message in #${data.channel_name || 'channel'}`);
   });
 
   socket.on('dm_reaction_added', async data => {
@@ -518,20 +519,7 @@ function initSocket() {
   });
 }
 
-// ═══════════════════════════════════════════
-// FILTER TABS
-// ═══════════════════════════════════════════
 
-function initFilterTabs() {
-  document.querySelectorAll('.filter-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentFilter = tab.dataset.filter;
-      loadNotifications();
-    });
-  });
-}
 
 // ═══════════════════════════════════════════
 // INIT
@@ -539,15 +527,10 @@ function initFilterTabs() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadUser();
-  initFilterTabs();
   initPushSwitch();
   renderMutedChannels();
   loadNotifications();
   initSocket();
 
-  document.getElementById('mark-all-btn').addEventListener('click', markAllAsRead);
-  document.getElementById('clear-all-btn').addEventListener('click', () => {
-    if (confirm('Clear all notifications? This cannot be undone.')) deleteAll();
-  });
   document.getElementById('add-mute-btn').addEventListener('click', openMuteModal);
 });

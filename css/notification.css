@@ -559,8 +559,9 @@ body {
 .notif-type-icon.type-role_changed,
 .notif-type-icon.type-role_updated   { background: #2563eb; border-color: #1d4ed8; }
 .notif-type-icon.type-kicked         { background: #dc2626; border-color: #b91c1c; }
-.notif-type-icon.type-dm             { background: #0369a1; border-color: #075985; }
-.notif-type-icon.type-reaction       { background: #7c3aed; border-color: #6d28d9; }
+.notif-type-icon.type-dm              { background: #0369a1; border-color: #075985; }
+.notif-type-icon.type-reaction        { background: #7c3aed; border-color: #6d28d9; }
+.notif-type-icon.type-channel_message { background: #0891b2; border-color: #0e7490; }
 .notif-type-icon.type-system         { background: #888;    border-color: #666; }
 
 /* ─── Notification Body ─── */
