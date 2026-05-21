@@ -315,6 +315,11 @@ body {
   border-left-color: #dc2626;
 }
 
+.sidebar-nav-bottom {
+  margin-top: auto !important;
+  padding-bottom: 16px;
+}
+
 /* ─── Sidebar Divider ─── */
 
 .sidebar-divider {

@@ -1,5 +1,86 @@
 const API_BASE = 'https://linksphere-5bef.onrender.com/api';
 
+// ── Sidebar ────────────────────────────────────────────────────
+const menuBtn        = document.getElementById('menu-btn');
+const sidebar        = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+const sidebarClose   = document.getElementById('sidebar-close');
+
+function openSidebar() {
+  sidebar.classList.add('open');
+  sidebarOverlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  sidebarOverlay.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+menuBtn.addEventListener('click', openSidebar);
+sidebarClose.addEventListener('click', closeSidebar);
+sidebarOverlay.addEventListener('click', closeSidebar);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeSidebar();
+});
+
+document.querySelectorAll('.sidebar-link').forEach(link => {
+  link.addEventListener('click', function () {
+    if (this.id === 'nav-logout') return;
+    closeSidebar();
+  });
+});
+
+const navLogout = document.getElementById('nav-logout');
+if (navLogout) {
+  navLogout.addEventListener('click', (e) => {
+    e.preventDefault();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setTimeout(() => { window.location.href = 'login.html'; }, 200);
+  });
+}
+
+const navMessages = document.getElementById('nav-messages');
+if (navMessages) {
+  navMessages.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeSidebar();
+    setTimeout(() => { window.location.href = 'messages.html'; }, 200);
+  });
+}
+
+const navWorkspace = document.getElementById('nav-workspace');
+if (navWorkspace) {
+  navWorkspace.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeSidebar();
+    setTimeout(() => { window.location.href = 'workspace.html'; }, 200);
+  });
+}
+
+// ── Load sidebar user info ────────────────────────────────────
+async function loadSidebarUser() {
+  const user = getUser();
+  if (!user) return;
+
+  const userNameEl = document.getElementById('sidebar-user-name');
+  const avatarEl = document.getElementById('sidebar-avatar');
+
+  if (userNameEl) userNameEl.textContent = (user.username || 'User').toUpperCase();
+  
+  if (avatarEl) {
+    const initial = (user.username || '?').charAt(0).toUpperCase();
+    if (user.avatar_url) {
+      avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.username}" />`;
+    } else {
+      avatarEl.textContent = initial;
+    }
+  }
+}
+
 // ── Pulse animation ────────────────────────────────────────────
 const _style = document.createElement('style');
 _style.textContent = `
@@ -87,17 +168,17 @@ function renderLogs(logs) {
 
         return `
           <article class="log-card" style="--delay:${d}s">
-            <div class="avatar-wrap">
-              <span class="avatar-name">${escapeHtml(name)}</span>
-              <div class="avatar">${avatarHtml}</div>
-            </div>
-            <div class="log-content">
-              <div class="log-top">
-                <span class="icon ${icon}" aria-hidden="true"></span>
+            <div class="card-left">
+              <div class="avatar-wrap">
+                <span class="avatar-name">${escapeHtml(name)}</span>
+                <div class="avatar">${avatarHtml}</div>
               </div>
-              <p>${getDescription(log)}</p>
-              <time>${time}</time>
+              <div class="log-content">
+                <p>${getDescription(log)}</p>
+                <time>${time}</time>
+              </div>
             </div>
+            <span class="icon ${icon}" aria-hidden="true"></span>
           </article>
         `;
       }).join('')}
@@ -202,4 +283,5 @@ async function loadAuditLogs(workspaceId) {
 }
 
 // ── Init ───────────────────────────────────────────────────────
+loadSidebarUser();
 loadWorkspaces();

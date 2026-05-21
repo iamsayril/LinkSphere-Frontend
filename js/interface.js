@@ -58,6 +58,15 @@ if (navWorkspace) {
   });
 }
 
+const navMessages = document.getElementById('nav-messages');
+if (navMessages) {
+  navMessages.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeSidebar();
+    setTimeout(() => { window.location.href = 'messages.html'; }, 200);
+  });
+}
+
 const navProfile = document.getElementById('nav-profile');
 if (navProfile) {
   navProfile.addEventListener('click', (e) => {
