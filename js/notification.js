@@ -146,7 +146,7 @@ function getTypeIcon(type) {
 function getNotifLabel(type) {
   if (type === 'dm')              return 'NEW MESSAGE';
   if (type === 'channel_message') return 'NEW MESSAGE';
-  if (type === 'reaction')        return 'NEW REACTION';
+  if (type === 'reaction')        return 'NEW MESSAGE';
   return '';
 }
 
@@ -654,10 +654,11 @@ function initSocket() {
     if (data.message_owner_id !== me.user_id) return;
     if (!isPushOn())                           return;
     if (data.reaction?.channel_id && isChannelMuted(data.reaction.channel_id)) return;
-    const msg = `${data.reactor_name || 'Someone'} reacted to your message in #${data.channel_name || 'channel'}`;
+    const msg = `${data.reactor_name || 'Someone'} reacted ${data.emoji || ''} to your message in #${data.channel_name || 'channel'}`;
     const title = `#${data.channel_name || 'channel'}`;
     injectNotif(title, msg, 'reaction');
     updateUnreadBadge();
+    showToast(msg);
     saveNotif(title, msg, 'reaction');
   });
 

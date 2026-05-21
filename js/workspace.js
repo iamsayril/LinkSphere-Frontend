@@ -322,6 +322,30 @@ function initializeSocket() {
     }
   });
 
+  // Listen for when member is kicked from a private channel
+  socket.on('user_kicked_from_channel', (data) => {
+    const { channelId, channelName, memberName } = data;
+    const me = getUser();
+    if (!me) return;
+
+    console.log('⚠️ KICKED EVENT RECEIVED:', { channelId, channelName, memberName });
+
+    // Show kick notification modal IMMEDIATELY - highest priority
+    showKickNotificationModal(channelName, memberName);
+
+    // If user was viewing this channel, close it
+    if (currentChannelId === channelId) {
+      closeChatPanel();
+      setChannelContent('<p class="status-msg" style="color:#cc1414;font-size:14px;font-weight:600;">🔒 You have been removed from this private channel by the owner.</p>');
+      currentChannelId = null;
+    }
+
+    // Refresh channel list to remove kicked channel from sidebar
+    if (currentWorkspace) {
+      setTimeout(() => loadWorkspace(currentWorkspace), 800);
+    }
+  });
+
 
 }
 
@@ -601,6 +625,75 @@ function showErrorModal(message) {
   }
 
   document.getElementById('ls-error-ok').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function onKey(e) {
+    if (e.key === 'Escape' || e.key === 'Enter') { close(); document.removeEventListener('keydown', onKey); }
+  });
+}
+
+// ─── Kick Notification Modal ──────────────────────────────────────────────────
+
+function showKickNotificationModal(channelName, memberName) {
+  const existing = document.getElementById('kick-modal-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'kick-modal-overlay';
+  overlay.style.cssText = `
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+  `;
+
+  overlay.innerHTML = `
+    <div style="
+      width: 360px; background: #fff;
+      border: 2px solid #111;
+      font-family: 'DM Sans', Arial, Helvetica, sans-serif;
+      box-shadow: 8px 8px 0 rgba(0,0,0,0.1);
+    ">
+      <div style="background:#cc1414; color:#fff; font-size:13px; font-weight:900; letter-spacing:0.15em; padding:14px 18px; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px;">🔓</span>
+        <span>CHANNEL ACCESS REVOKED</span>
+      </div>
+      <div style="padding:24px 18px; line-height:1.6;">
+        <div style="font-size:12px; font-weight:700; color:#111; margin-bottom:12px;">
+          You have been removed from the private channel.
+        </div>
+        <div style="padding:12px; background:#fff5f5; border:1px solid #ffcccc; border-radius:2px;">
+          <div style="font-size:10px; font-weight:700; color:#cc1414; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px;">📌 Channel</div>
+          <div style="font-size:12px; font-weight:600; color:#111;">${escapeHtml(channelName)}</div>
+        </div>
+        <div style="font-size:11px; color:#666; margin-top:16px; line-height:1.5;">
+          The workspace owner has removed you from this private channel. You no longer have access to this channel or its messages.
+        </div>
+      </div>
+      <div style="border-top: 2px solid #111;">
+        <button id="kick-modal-ok" style="
+          width:100%; height:48px; border:none;
+          background:#111; color:#fff;
+          font-size:12px; font-weight:700; letter-spacing:0.12em;
+          cursor:pointer; font-family:'DM Sans',Arial,Helvetica,sans-serif;
+          text-transform:uppercase;
+          transition: all 0.1s;
+        ">UNDERSTOOD</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  function close() {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.15s ease';
+    setTimeout(() => overlay.remove(), 150);
+  }
+
+  const okBtn = document.getElementById('kick-modal-ok');
+  okBtn.addEventListener('mouseover', () => okBtn.style.background = '#333');
+  okBtn.addEventListener('mouseout', () => okBtn.style.background = '#111');
+  okBtn.addEventListener('click', close);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   document.addEventListener('keydown', function onKey(e) {
     if (e.key === 'Escape' || e.key === 'Enter') { close(); document.removeEventListener('keydown', onKey); }
@@ -1219,11 +1312,11 @@ function renderChannels(channels) {
               if (!window._channelAccessCache) window._channelAccessCache = {};
               window._channelAccessCache[ch.channel_id] = list;
               if (!list.some(a => a.user_id === user?.user_id)) {
-                showErrorModal('You do not have permission to access this channel.');
+                showErrorModal(`🔒 Private Text Channel Access Denied\n\nThe channel "#${escapeHtml(ch.name)}" is private. Only the owner or members with specific permission can access it.\n\nPlease contact the workspace owner if you believe you should have access.`);
                 return;
               }
             } catch (err) {
-              showErrorModal('You do not have permission to access this channel.');
+              showErrorModal(`🔒 Private Text Channel Access Denied\n\nThe channel "#${escapeHtml(ch.name)}" is private. Only the owner or members with specific permission can access it.\n\nPlease contact the workspace owner if you believe you should have access.`);
               return;
             }
           }
@@ -1433,11 +1526,11 @@ function renderChannels(channels) {
               if (!window._channelAccessCache) window._channelAccessCache = {};
               window._channelAccessCache[ch.channel_id] = list;
               if (!list.some(a => a.user_id === user?.user_id)) {
-                showErrorModal('You do not have permission to access this channel.');
+                showErrorModal(`🔒 Private Voice Channel Access Denied\n\nThe channel "🔊 ${escapeHtml(getChannelDisplayName(ch))}" is private. Only the owner or members with specific permission can access it.\n\nPlease contact the workspace owner if you believe you should have access.`);
                 return;
               }
             } catch (err) {
-              showErrorModal('You do not have permission to access this channel.');
+              showErrorModal(`🔒 Private Voice Channel Access Denied\n\nThe channel "🔊 ${escapeHtml(getChannelDisplayName(ch))}" is private. Only the owner or members with specific permission can access it.\n\nPlease contact the workspace owner if you believe you should have access.`);
               return;
             }
           }
@@ -1716,21 +1809,40 @@ async function showChannelAccessModal(channelId, channelName) {
               <div style="font-size:13px;font-weight:700;">${escapeHtml(matched.name || 'Unknown')} ${isMe ? '<span style="color:#cc1414;font-size:10px;">(YOU)</span>' : ''}</div>
               <div style="font-size:11px;color:#888;">${escapeHtml(matched.role || 'member')}</div>
             </div>
-            <button class="ch-access-remove-btn" data-user-id="${a.user_id}" style="border:none;background:none;color:#cc1414;cursor:pointer;font-size:13px;font-weight:700;padding:4px 8px;" title="Remove access">✕</button>
+            <button class="ch-access-kick-btn" data-user-id="${a.user_id}" data-user-name="${escapeHtml(matched.name || 'Unknown')}" style="border:none;background:none;color:#cc1414;cursor:pointer;font-size:13px;font-weight:700;padding:4px 8px;" title="Kick member from channel">✕</button>
           </div>`;
       }).join('');
 
       list.innerHTML = ownerRow + (displayList.length ? memberRows : `<div style="text-align:center;padding:12px;color:#aaa;font-size:13px;">No other members have access yet.</div>`);
 
-      list.querySelectorAll('.ch-access-remove-btn').forEach(btn => {
+      list.querySelectorAll('.ch-access-kick-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const userId = btn.dataset.userId;
+          const userName = btn.dataset.userName;
+          
+          // Emit socket event immediately for real-time notification
+          if (socket && socket.connected) {
+            socket.emit('member_kicked_from_channel', { 
+              channelId, 
+              userId, 
+              channelName, 
+              memberName: userName,
+              workspaceId: currentWorkspace?.workspace_id
+            });
+          } else {
+            console.warn('Socket not connected, kick notification may be delayed');
+          }
+          
           try {
+            // Remove access from backend
             await fetch(`${API_BASE}/channels/${channelId}/access/${userId}`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` },
             });
-          } catch (e) {}
+          } catch (e) {
+            console.error('Error kicking member:', e);
+          }
+          
           localAccessList = localAccessList.filter(a => a.user_id !== userId);
           window._channelAccessCache[channelId] = [...localAccessList];
           loadAccess();
