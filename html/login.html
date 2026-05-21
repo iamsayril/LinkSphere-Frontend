@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Linksphere Login</title>
+  <link rel="stylesheet" href="../css/login.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="logo-icon">✣</div>
+    <div class="logo-text">LINKSPHERE</div>
+  </header>
+
+  <main class="page">
+    <div class="brand-small">LINKSPHERE</div>
+
+    <section class="auth-card">
+      <h1>WELCOME BACK</h1>
+      <div class="underline"></div>
+
+      <form id="login-form">
+        <label for="login-email">Email</label>
+        <input id="login-email" type="email" placeholder="USER@DOMAIN.COM" />
+
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" placeholder="••••••••" />
+
+        <button id="login-btn" type="submit" class="primary-btn">LOGIN</button>
+      </form>
+
+      <div class="divider">
+        <span></span>
+        <p>OR</p>
+        <span></span>
+      </div>
+
+      <button id="google-login-btn" type="button" class="google-btn">↪ LOGIN WITH GOOGLE</button>
+
+      <p class="switch-text">
+        Don't have an account?
+        <a href="signup.html">SIGN UP</a>
+      </p>
+    </section>
+
+    <div class="status-bar">
+      <div><span class="dot"></span>SYSTEM ACTIVE</div>
+      <p>LATENCY: 12MS</p>
+      <p>V2.4.0</p>
+    </div>
+  </main>
+
+  <footer>
+    <h2>LINKSPHERE</h2>
+    <p>© 2026 LINKSPHERE. PRECISION ENGINEERED.</p>
+
+    <div class="footer-links">
+      <div>
+        <a href="#">PRODUCT</a>
+        <a href="#">FEATURES</a>
+        <a href="#">PRICING</a>
+      </div>
+      <div>
+        <a href="#">PRIVACY</a>
+        <a href="#">TERMS</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ✅ Only login.js — removed auth.js and Supabase CDN -->
+  <script src="../js/login.js"></script>
+</body>
+</html>
