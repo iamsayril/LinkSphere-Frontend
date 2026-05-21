@@ -330,17 +330,35 @@ function initializeSocket() {
 
     console.log('⚠️ KICKED EVENT RECEIVED:', { channelId, channelName, memberName });
 
-    // Show kick notification modal IMMEDIATELY - highest priority
     showKickNotificationModal(channelName, memberName);
 
-    // If user was viewing this channel, close it
     if (currentChannelId === channelId) {
       closeChatPanel();
       setChannelContent('<p class="status-msg" style="color:#cc1414;font-size:14px;font-weight:600;">🔒 You have been removed from this private channel by the owner.</p>');
       currentChannelId = null;
     }
 
-    // Refresh channel list to remove kicked channel from sidebar
+    if (currentWorkspace) {
+      setTimeout(() => loadWorkspace(currentWorkspace), 800);
+    }
+  });
+
+  // Fallback: direct targeted kick notification
+  socket.on('you_were_kicked', (data) => {
+    const { channelId, channelName, memberName } = data;
+    const me = getUser();
+    if (!me) return;
+
+    console.log('⚠️ YOU_WERE_KICKED EVENT RECEIVED:', { channelId, channelName, memberName });
+
+    showKickNotificationModal(channelName, memberName);
+
+    if (currentChannelId === channelId) {
+      closeChatPanel();
+      setChannelContent('<p class="status-msg" style="color:#cc1414;font-size:14px;font-weight:600;">🔒 You have been removed from this private channel by the owner.</p>');
+      currentChannelId = null;
+    }
+
     if (currentWorkspace) {
       setTimeout(() => loadWorkspace(currentWorkspace), 800);
     }
@@ -700,6 +718,46 @@ function showKickNotificationModal(channelName, memberName) {
   });
 }
 
+// ─── Toast Notification ───────────────────────────────────────────────────────
+
+function showToast(message, duration = 3000) {
+  const existing = document.getElementById('ls-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'ls-toast';
+  toast.style.cssText = `
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #111; color: #fff;
+    font-family: 'DM Sans', Arial, sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    padding: 12px 20px; border: 2px solid #cc1414;
+    z-index: 99999; white-space: nowrap;
+    animation: lsToastIn 0.2s ease;
+  `;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes lsToastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    @keyframes lsToastOut {
+      from { opacity: 1; transform: translateX(-50%) translateY(0); }
+      to   { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'lsToastOut 0.2s ease forwards';
+    setTimeout(() => toast.remove(), 200);
+  }, duration);
+}
+
 // ─── Workspace Icon Helper ────────────────────────────────────────────────────
 
 function buildWorkspaceIcon(ws) {
@@ -904,7 +962,34 @@ function showVoiceChannelJoinConfirmation(channelId, channelName) {
 
   cancelBtn.addEventListener('click', close);
 
-  confirmBtn.addEventListener('click', () => {
+  confirmBtn.addEventListener('click', async () => {
+    const user = getUser();
+    const isOwner = currentWorkspace?.user_id === user?.user_id;
+    const isAdmin = currentWorkspace?.myRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      const token = getToken();
+      try {
+        const res = await fetch(`${API_BASE}/channels/${channelId}/access`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const accessList = res.ok ? await res.json() : [];
+        const cached = window._channelAccessCache?.[channelId];
+        const list = (Array.isArray(accessList) && accessList.length) ? accessList : (cached || []);
+        if (!window._channelAccessCache) window._channelAccessCache = {};
+        window._channelAccessCache[channelId] = list;
+        if (list.length > 0 && !list.some(a => a.user_id === user?.user_id)) {
+          close();
+          showErrorModal(`🔒 Private Voice Channel Access Denied\n\nThe channel "🔊 ${escapeHtml(channelName)}" is private. Only the owner or members with specific permission can access it.\n\nPlease contact the workspace owner if you believe you should have access.`);
+          return;
+        }
+      } catch (err) {
+        close();
+        showErrorModal(`🔒 Private Voice Channel Access Denied\n\nThe channel "🔊 ${escapeHtml(channelName)}" is private. Only the owner or members with specific permission can access it.\n\nPlease contact the workspace owner if you believe you should have access.`);
+        return;
+      }
+    }
+
     // Store voice channel info and navigate to channel.html
     sessionStorage.setItem('voice_channel_id', channelId);
     sessionStorage.setItem('voice_channel_name', channelName);
@@ -1537,6 +1622,8 @@ function renderChannels(channels) {
         }
         document.querySelectorAll('.channel').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
+        // Store channelId for access check in join confirmation
+        sessionStorage.setItem('voice_channel_access_checked', ch.channel_id);
         showVoiceChannelJoinConfirmation(ch.channel_id, getChannelDisplayName(ch));
       });
 
@@ -1822,9 +1909,9 @@ async function showChannelAccessModal(channelId, channelName) {
           
           // Emit socket event immediately for real-time notification
           if (socket && socket.connected) {
-            socket.emit('member_kicked_from_channel', { 
+            socket.emit('kick_member_from_channel', { 
+              targetUserId: userId,
               channelId, 
-              userId, 
               channelName, 
               memberName: userName,
               workspaceId: currentWorkspace?.workspace_id
@@ -1845,6 +1932,10 @@ async function showChannelAccessModal(channelId, channelName) {
           
           localAccessList = localAccessList.filter(a => a.user_id !== userId);
           window._channelAccessCache[channelId] = [...localAccessList];
+          
+          // Show toast notification about member removal
+          showToast(`✓ ${userName} removed from channel`);
+          
           loadAccess();
         });
       });
@@ -1895,14 +1986,18 @@ async function showChannelAccessModal(channelId, channelName) {
     const allMembers = membersRes.ok ? await membersRes.json() : [];
     const member = allMembers.find(m => m.user_id === userId);
     if (member && !localAccessList.some(a => a.user_id === userId)) {
-      localAccessList.push(member);
+      localAccessList.push({ ...member, user_id: userId });
     }
     window._channelAccessCache[channelId] = [...localAccessList];
 
     addBtn.disabled = false;
     addBtn.textContent = 'ADD';
     select.value = '';
-    loadAccess();
+
+    const memberName = member?.name || 'Member';
+    showToast(`✓ ${memberName} added to channel`);
+
+    await loadAccess();
   });
 }
 
@@ -2180,6 +2275,35 @@ async function joinVoiceChannel(channelId) {
   const user = getUser();
   
   if (!token || !user) return;
+
+  // Check if user has permission to join private voice channel
+  const currentChannel = document.querySelector(`[data-id="${channelId}"]`)?.closest('.voice-channel-wrapper');
+  if (currentChannel) {
+    const channelBtn = document.querySelector(`[data-id="${channelId}"].voice-channel`);
+    if (channelBtn) {
+      const isPrivate = channelBtn.innerHTML.includes('svg') && channelBtn.innerHTML.includes('lock');
+      if (isPrivate) {
+        const isOwner = currentWorkspace?.user_id === user?.user_id;
+        const isAdmin = currentWorkspace?.myRole === 'admin';
+        if (!isOwner && !isAdmin) {
+          try {
+            const accessRes = await fetch(`${API_BASE}/channels/${channelId}/access`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const accessList = accessRes.ok ? await accessRes.json() : [];
+            if (!accessList.some(a => a.user_id === user?.user_id)) {
+              showErrorModal(`🔒 Private Voice Channel Access Denied\n\nYou do not have permission to join this private voice channel.\n\nPlease contact the workspace owner if you believe you should have access.`);
+              return;
+            }
+          } catch (err) {
+            console.error('Error checking voice channel access:', err);
+            showErrorModal(`🔒 Private Voice Channel Access Denied\n\nCould not verify your access to this private voice channel.`);
+            return;
+          }
+        }
+      }
+    }
+  }
   
   try {
     isUserInVoice = true;
